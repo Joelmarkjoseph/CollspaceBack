@@ -19,9 +19,11 @@ app = Flask(__name__)
 CORS(app)
 
 # Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://joel:rWj8xkjcdOMC3UwiDWzlNosErqH3zzQz@dpg-ctir9v5umphs73f64c3g-a.oregon-postgres.render.com/collspacedb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 
 # Initialize SQLAlchemy and Flask-Migrate
 db = SQLAlchemy(app)
@@ -164,13 +166,14 @@ def protected(user_id):
 
 
 # Configure Flask-Mail
+
+app.config['MAIL_DEFAULT_SENDER'] = 'joelmarkjoseph2004@gmail.com'
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'joelmarkjoseph2004@gmail.com'  # Replace with your email
-app.config['MAIL_PASSWORD'] = 'jpph tnro vbzq wubz'  # Replace with your email password
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_DEFAULT_SENDER'] = 'joelmarkjoseph2004@gmail.com'
 
 mail = Mail(app)
 
@@ -219,10 +222,8 @@ def verify_otp():
         return jsonify({"error": "Invalid OTP"}), 400
 
 
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
 
-    app.run(debug=True)
- 
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
