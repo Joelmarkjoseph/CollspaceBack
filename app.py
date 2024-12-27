@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
-import jwt
 import datetime
 from functools import wraps
 import random
@@ -52,7 +51,7 @@ def generate_token(student):
         'sub': student.rollno,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
     }
-    
+
     header = {"alg": "HS256"}  # Algorithm for token encoding
     token = jwt.encode(header, payload, secret_key)  # Authlib's JWT encoding
     return token.decode("utf-8")  # Ensure it returns a string if needed
