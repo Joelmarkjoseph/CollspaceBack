@@ -14,7 +14,7 @@ from flask_mail import Mail, Message
 import random
 import os
 from authlib.jose import jwt
-from jwt import decode, ExpiredSignatureError, InvalidTokenError
+from jwt import ExpiredSignatureError, InvalidTokenError
 
 app = Flask(__name__)
 CORS(app)
