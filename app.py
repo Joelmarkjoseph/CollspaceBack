@@ -14,6 +14,7 @@ from flask_mail import Mail, Message
 import random
 import os
 from authlib.jose import jwt
+from jwt import decode, ExpiredSignatureError, InvalidTokenError
 
 app = Flask(__name__)
 CORS(app)
@@ -62,7 +63,7 @@ def generate_token(student):
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
+        token = request.headers.get('Authorization', '').split("Bearer ")[-1]
         if not token:
             return jsonify({"error": "Token is missing"}), 401
 
