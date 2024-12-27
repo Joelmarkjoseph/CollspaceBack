@@ -14,6 +14,7 @@ from email.mime.application import MIMEApplication
 from flask_mail import Mail, Message
 import random
 import os
+from authlib.jose import jwt
 
 app = Flask(__name__)
 CORS(app)
@@ -51,8 +52,11 @@ def generate_token(student):
         'sub': student.rollno,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
     }
-    token = jwt.encode(payload, secret_key, algorithm='HS256')  # Returns a string
-    return token
+    
+    header = {"alg": "HS256"}  # Algorithm for token encoding
+    token = jwt.encode(header, payload, secret_key)  # Authlib's JWT encoding
+    return token.decode("utf-8")  # Ensure it returns a string if needed
+
 
 # JWT Token Verification Decorator
 def token_required(f):
