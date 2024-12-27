@@ -69,11 +69,9 @@ def token_required(f):
         try:
             token = token.split(" ")[1]
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            return jsonify({"error": "Token has expired"}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({"error": "Invalid token"}), 401
-
+        except Error as e:
+            return jsonify({"error": "Check Logs"}), 401
+        
         return f(*args, **kwargs, user_id=data['sub'])
     return decorated
 
