@@ -51,7 +51,7 @@ def generate_token(student):
         'sub': student.rollno,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
     }
-    token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+    token = jwt.encode(payload, secret_key, algorithm='HS256')  # Returns a string
     return token
 
 # JWT Token Verification Decorator
