@@ -84,7 +84,9 @@ def index():
 @app.route('/dashboard', methods=['GET'])
 @token_required
 def dashdata(user_id):
+    print(user_id)
     students = Student.query.filter(Student.rollno == user_id).all()
+    print(students)
     return jsonify([{
         "rollno": student.rollno,
         "name": student.name,
