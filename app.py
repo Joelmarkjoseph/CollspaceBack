@@ -70,6 +70,7 @@ def token_required(f):
         try:
             token = token.split(" ")[1]
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            print(data)
         except Exception:
             return jsonify({"error": "Check Logs"}), 401
         
