@@ -14,7 +14,6 @@ from flask_mail import Mail, Message
 import random
 import os
 from authlib.jose import jwt
-import jwt
 
 app = Flask(__name__)
 CORS(app)
