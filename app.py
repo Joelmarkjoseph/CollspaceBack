@@ -161,21 +161,24 @@ def add_student():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    rollno=data['rollno'].upper()
-    for i in range(len(rollno)):
-        if rollno[i].isdecimal()==False:
-            rollno=rollno[:i]+rollno[i].upper() + rollno[i+1:]
-    print(rollno)
+    
+    if 'rollno' not in data or 'password' not in data:
+        return jsonify({"error": "Missing roll number or password"}), 400
 
-    student = Student.query.filter_by(rollno).first() 
-    rollno=data['rollno'].upper()
+    rollno = data['rollno'].upper()
     for i in range(len(rollno)):
-        if rollno[i].isdecimal()==False:
-            rollno=rollno[:i]+rollno[i].lower() + rollno[i+1:]
-    print(rollno)
-    studenttry2 = Student.query.filter_by(rollno).first()  
+        if not rollno[i].isdecimal():
+            rollno = rollno[:i] + rollno[i].lower() + rollno[i+1:]
 
-    if (student or studenttry2) and check_password_hash(student.password, data['password']):
+    print(f"Normalized Roll Number: {rollno}")
+
+    student = Student.query.filter_by(rollno=rollno).first()
+
+    if not student:
+        rollno_alternate = rollno.swapcase()  # Swap case for alternate query
+        student = Student.query.filter_by(rollno=rollno_alternate).first()
+
+    if student and check_password_hash(student.password, data['password']):
         token = generate_token(student)
         return jsonify({"message": "Login successful!", "token": token}), 200
 
