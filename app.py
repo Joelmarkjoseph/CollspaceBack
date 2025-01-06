@@ -198,7 +198,7 @@ def send_otp():
     email = data.get('mailid')
 
     if not email:
-        return jsonify({"error": "Email is required"}), 400
+        return jsonify({"error": "Email is required"}), 400 
 
     otp = random.randint(100000, 999999)  # Generate a 6-digit OTP
     otp_dict[email] = otp
