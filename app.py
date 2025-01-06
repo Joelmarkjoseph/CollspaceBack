@@ -164,14 +164,14 @@ def login():
     rollno=data['rollno'].upper()
     for i in range(len(rollno)):
         if rollno[i].isdecimal()==False:
-            rollno[i]=rollno[:i]+rollno[i].upper() + rollno[i+1:]
+            rollno=rollno[:i]+rollno[i].upper() + rollno[i+1:]
     print(rollno)
 
     student = Student.query.filter_by(rollno).first() 
     rollno=data['rollno'].upper()
     for i in range(len(rollno)):
         if rollno[i].isdecimal()==False:
-            rollno[i]=rollno[:i]+rollno[i].lower() + rollno[i+1:]
+            rollno=rollno[:i]+rollno[i].lower() + rollno[i+1:]
     print(rollno)
     studenttry2 = Student.query.filter_by(rollno).first()  
 
