@@ -14,16 +14,24 @@ from flask_mail import Mail, Message
 import random
 import os
 from authlib.jose import jwt
+import jwt
 
 app = Flask(__name__)
 CORS(app)
 
 # Database configuration
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Production
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_secret_key')
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+
+# Deployment
+# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://joel:rWj8xkjcdOMC3UwiDWzlNosErqH3zzQz@dpg-ctir9v5umphs73f64c3g-a.oregon-postgres.render.com/collspacedb"
+# app.config['SECRET_KEY'] = "your_secret_key"
+# app.config['MAIL_USERNAME'] = "joelmarkjoseph2004@gmail.com"
+# app.config['MAIL_PASSWORD'] = "jpph tnro vbzq wubz"
 
 # Initialize SQLAlchemy and Flask-Migrate
 db = SQLAlchemy(app)
@@ -55,7 +63,8 @@ def generate_token(student):
     header = {"alg": "HS256"}  # Algorithm for token encoding
     secret_key = app.config['SECRET_KEY']
     token = jwt.encode(header, payload, secret_key)  # Authlib's JWT encoding
-    return token.decode("utf-8")  # Ensure it returns a string if needed
+    # return token.decode("utf-8")  # Ensure it returns a string if needed
+    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
 
 
 # JWT Token Verification Decorator
@@ -63,23 +72,19 @@ def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get('Authorization', '').split("Bearer ")[-1]
-        print(token)
         if not token:
             return jsonify({"error": "Token is missing"}), 401
-
         try:
-            token = token.split(" ")[1]
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            print(data)
-        except Exception:
-            return jsonify({"error": "Check Logs"}), 401
-        
+        except Exception as e:
+            print(e)
+            return jsonify({"error": "Invalid token"}), 401        
         return f(*args, **kwargs, user_id=data['sub'])
     return decorated
 
 @app.route('/')
 def index():
-    return jsonify({"message": "Welcome to Flask with Render!"})
+    return jsonify({"message": "Welcome to Collspace's Backend Server!"})
 
 @app.route('/dashboard', methods=['GET'])
 @token_required
@@ -176,8 +181,10 @@ def protected(user_id):
 app.config['MAIL_DEFAULT_SENDER'] = 'joelmarkjoseph2004@gmail.com'
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME') #production
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD') #production
+# app.config['MAIL_USERNAME'] = "joelmarkjoseph2004@gmail.com"
+# app.config['MAIL_PASSWORD'] = "jpph tnro vbzq wubz"
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
@@ -231,5 +238,5 @@ def verify_otp():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
+    # app.run(debug=True) # deployment
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000))) #production
