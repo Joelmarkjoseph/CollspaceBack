@@ -63,8 +63,8 @@ def generate_token(student):
     header = {"alg": "HS256"}  # Algorithm for token encoding
     secret_key = app.config['SECRET_KEY']
     token = jwt.encode(header, payload, secret_key)  # Authlib's JWT encoding
-    # return token.decode("utf-8")  # Ensure it returns a string if needed
-    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
+    return token.decode("utf-8")  # Ensure it returns a string if needed
+    # return jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
 
 
 # JWT Token Verification Decorator
