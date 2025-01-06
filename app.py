@@ -161,7 +161,8 @@ def add_student():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    student = Student.query.filter_by(rollno=data['rollno']).first()
+    student = Student.query.filter_by(rollno=data['rollno']).first() 
+    studenttry2 = Student.query.filter_by((rollno=data['rollno']).lower()).first()  
 
     if student and check_password_hash(student.password, data['password']):
         token = generate_token(student)
