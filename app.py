@@ -162,11 +162,20 @@ def add_student():
 def login():
     data = request.get_json()
     rollno=data['rollno'].upper()
+    for i in range(len(rollno)):
+        if rollno[i].isdecimal()==False:
+            rollno[i]=rollno[:i]+rollno[i].upper() + rollno[i+1:]
+    print(rollno)
+
     student = Student.query.filter_by(rollno).first() 
-    rollno=data['rollno'].lower()
+    rollno=data['rollno'].upper()
+    for i in range(len(rollno)):
+        if rollno[i].isdecimal()==False:
+            rollno[i]=rollno[:i]+rollno[i].lower() + rollno[i+1:]
+    print(rollno)
     studenttry2 = Student.query.filter_by(rollno).first()  
 
-    if student and check_password_hash(student.password, data['password']):
+    if (student or studenttry2) and check_password_hash(student.password, data['password']):
         token = generate_token(student)
         return jsonify({"message": "Login successful!", "token": token}), 200
 
