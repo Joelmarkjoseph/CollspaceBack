@@ -18,6 +18,7 @@ from authlib.jose import jwt
 app = Flask(__name__)
 CORS(app)
 
+
 # Database configuration
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Production
