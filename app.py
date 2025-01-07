@@ -221,7 +221,7 @@ def send_otp():
 
     # Send OTP via email
     msg = Message("Your OTP for Signup", recipients=[email])
-    msg.body = f"Your OTP is: {otp}"
+    msg.body = f"Hello from COLLSPACE!! \nYour OTP for verifying your mail id is: {otp} \nThis Otp is valid for only 10 mins.\nPlease do not share this Otp with anyone."
 
     try:
         mail.send(msg)
