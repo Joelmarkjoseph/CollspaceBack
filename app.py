@@ -53,6 +53,19 @@ class Student(db.Model):
     def __repr__(self):
         return f"<Student {self.name}>"
 
+# Define the Professor model
+class Professor(db.Model):
+    __tablename__ = 'professor'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    department = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    phone = db.Column(db.BigInteger, nullable=False)
+    password = db.Column(db.String(1000), nullable=False)
+
+    def __repr__(self):
+        return f"<Professor {self.name}>"
+
 # Function to generate JWT token
 def generate_token(student):
     payload = {
@@ -156,6 +169,38 @@ def add_student():
     verified_emails.remove(data['mailid'])
 
     return jsonify({"message": "Student added successfully!"}), 201
+
+@app.route('/profsignup', methods=['POST'])
+def prof_signup():
+    data = request.get_json()
+
+    # Ensure OTP is verified
+    if data['email'] not in verified_emails:
+        return jsonify({"error": "OTP verification is required before signing up"}), 403
+
+    # Check if professor already exists
+    if Professor.query.filter_by(email=data['email']).first():
+        return jsonify({'error': 'Professor with this email already exists'}), 400
+
+    # Hash the password
+    hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
+
+    # Add professor to the database
+    new_professor = Professor(
+        name=data['name'],
+        department=data['department'],
+        email=data['email'],
+        phone=data['phone'],
+        password=hashed_password
+    )
+
+    db.session.add(new_professor)
+    db.session.commit()
+
+    # Remove from verified list after successful registration
+    verified_emails.remove(data['email'])
+
+    return jsonify({"message": "Professor signed up successfully!"}), 201
 
 # Route to login (generates JWT token)
 @app.route('/login', methods=['POST'])
