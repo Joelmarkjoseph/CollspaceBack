@@ -148,7 +148,7 @@ def get_students():
     } for student in students]), 200
 
 @app.route('/profs', methods=['GET'])
-def get_students():
+def get_professors():
     """
     Endpoint to get the list of all students.
     Returns a JSON array of all students in the database.
