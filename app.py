@@ -60,10 +60,11 @@ class Professor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     department = db.Column(db.String(50), nullable=False)
+    college = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     phone = db.Column(db.BigInteger, nullable=False)
     password = db.Column(db.String(1000), nullable=False)
-
+    
     def __repr__(self):
         return f"<Professor {self.name}>"
 
