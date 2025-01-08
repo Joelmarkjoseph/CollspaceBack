@@ -14,6 +14,7 @@ from flask_mail import Mail, Message
 import random
 import os
 from authlib.jose import jwt
+from flask_migrate import upgrade
 
 app = Flask(__name__)
 CORS(app)
@@ -98,6 +99,18 @@ def token_required(f):
 @app.route('/')
 def index():
     return jsonify({"message": "Welcome to Collspace's Backend Server!"})
+
+@app.route('/migrate', methods=['POST'])
+def run_migrations():
+    """
+    Run database migrations.
+    """
+    try:
+        upgrade()  # Run the Flask-Migrate upgrade
+        return jsonify({"message": "Migrations applied successfully!"}), 200
+    except Exception as e:
+        return jsonify({"error": f"Migration failed: {str(e)}"}), 500
+
 
 @app.route('/dashboard', methods=['GET'])
 @token_required
@@ -295,8 +308,18 @@ def verify_otp():
         return jsonify({"error": "Invalid OTP"}), 400
 
 
+# if __name__ == '__main__':
+#     with app.app_context():
+#         db.create_all()
+#     # app.run(debug=True) # deployment
+#     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000))) #production
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
-    # app.run(debug=True) # deployment
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000))) #production
+        try:
+            upgrade()  # Run the Flask-Migrate upgrade
+            print("Migrations applied successfully!")
+        except Exception as e:
+            print(f"Migration failed: {str(e)}")
+
+        db.create_all()  # Optional: Ensures tables exist
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
