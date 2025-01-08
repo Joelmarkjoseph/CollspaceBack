@@ -202,7 +202,7 @@ def prof_signup():
     new_professor = Professor(
         name=data['name'],
         department=data['department'],
-        email=data['email'],
+        email=data['mailid'],
         phone=data['phone'],
         password=hashed_password
     )
