@@ -188,7 +188,7 @@ def prof_signup():
     data = request.get_json()
 
     # Ensure OTP is verified
-    if data['email'] not in verified_emails:
+    if data['mailid'] not in verified_emails:
         return jsonify({"error": "OTP verification is required before signing up"}), 403
 
     # Check if professor already exists
