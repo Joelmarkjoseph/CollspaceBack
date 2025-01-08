@@ -153,7 +153,7 @@ def get_professors():
     Endpoint to get the list of all students.
     Returns a JSON array of all students in the database.
     """
-    profs = Srofessor.query.all()
+    profs = Professor.query.all()
     return jsonify([{
         "id": prof.id,
         "name": prof.name,
