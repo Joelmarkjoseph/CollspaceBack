@@ -146,6 +146,21 @@ def get_students():
         "mailid": student.mailid
     } for student in students]), 200
 
+@app.route('/profs', methods=['GET'])
+def get_students():
+    """
+    Endpoint to get the list of all students.
+    Returns a JSON array of all students in the database.
+    """
+    profs = Professor.query.all()
+    return jsonify([{
+        "id": prof.id,
+        "name": prof.name,
+        "department": prof.department,
+        "mobileno": prof.phone,
+        "email": prof.email
+    } for prof in Professor]), 200
+
 
 @app.route('/add_student', methods=['POST'])
 def add_student():
