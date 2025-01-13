@@ -1,88 +1,48 @@
 from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_migrate import Migrate
+from google.cloud import firestore
 import datetime
-from functools import wraps
-import random
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from flask_mail import Mail, Message
-import random
 import os
 from authlib.jose import jwt
-from flask_migrate import upgrade
+from functools import wraps
+import random
+from flask_mail import Mail, Message
 
+# Initialize Flask app
 app = Flask(__name__)
 CORS(app)
 
+# Firestore initialization
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', '/etc/secrets/firebasecred')
+db = firestore.Client()
 
-# Database configuration
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# Production
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_secret_key')
+# Secret key configuration
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'joelseckey')
+
+# Mail configuration
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'joelmarkjoseph2004@gmail.com')
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
 
-# Deployment
-# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://joel:rWj8xkjcdOMC3UwiDWzlNosErqH3zzQz@dpg-ctir9v5umphs73f64c3g-a.oregon-postgres.render.com/collspacedb"
-# app.config['SECRET_KEY'] = "your_secret_key"
-# app.config['MAIL_USERNAME'] = "joelmarkjoseph2004@gmail.com"
-# app.config['MAIL_PASSWORD'] = "jpph tnro vbzq wubz"
+mail = Mail(app)
 
-# Initialize SQLAlchemy and Flask-Migrate
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-
-# Define the Student model
-class Student(db.Model):
-    __tablename__ = 'student'
-    rollno = db.Column(db.String(15), primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
-    branch = db.Column(db.String(50), nullable=False)
-    section = db.Column(db.String(50), nullable=False)
-    mobileno = db.Column(db.BigInteger, nullable=False)
-    college = db.Column(db.String(100), nullable=False)
-    password = db.Column(db.String(1000), nullable=False)
-    mailid = db.Column(db.String(100), nullable=False)
-
-    def __repr__(self):
-        return f"<Student {self.name}>"
-
-# Define the Professor model
-class Professor(db.Model):
-    __tablename__ = 'professor'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    department = db.Column(db.String(50), nullable=False)
-    college = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    phone = db.Column(db.BigInteger, nullable=False)
-    password = db.Column(db.String(1000), nullable=False)
-    
-    def __repr__(self):
-        return f"<Professor {self.name}>"
-
-# Function to generate JWT token
-def generate_token(student):
+# JWT token generation
+def generate_token(user_id):
     payload = {
-        'sub': student.rollno,
+        'sub': user_id,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
     }
-
-    header = {"alg": "HS256"}  # Algorithm for token encoding
+    header = {"alg": "HS256"}
     secret_key = app.config['SECRET_KEY']
-    token = jwt.encode(header, payload, secret_key)  # Authlib's JWT encoding
-    return token.decode("utf-8")  # Ensure it returns a string if needed
-    # return jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
+    token = jwt.encode(header, payload, secret_key)
+    return token.decode("utf-8")
 
-
-# JWT Token Verification Decorator
+# JWT token verification
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -90,252 +50,76 @@ def token_required(f):
         if not token:
             return jsonify({"error": "Token is missing"}), 401
         try:
-            data = data = jwt.decode(token, app.config['SECRET_KEY'])
-        except Exception as e:
-            print(e)
-            return jsonify({"error": "Invalid token"}), 401        
+            data = jwt.decode(token, app.config['SECRET_KEY'])
+        except Exception:
+            return jsonify({"error": "Invalid token"}), 401
         return f(*args, **kwargs, user_id=data['sub'])
     return decorated
 
 @app.route('/')
 def index():
-    return jsonify({"message": "Welcome to Collspace's Backend Server!"})
-
-@app.route('/migrate', methods=['POST'])
-def run_migrations():
-    """
-    Run database migrations.
-    """
-    try:
-        upgrade()  # Run the Flask-Migrate upgrade
-        return jsonify({"message": "Migrations applied successfully!"}), 200
-    except Exception as e:
-        return jsonify({"error": f"Migration failed: {str(e)}"}), 500
-
-
-@app.route('/dashboard', methods=['GET'])
-@token_required
-def dashdata(user_id):
-    print(user_id)
-    students = Student.query.filter(Student.rollno == user_id).all()
-    print(students)
-    return jsonify([{
-        "rollno": student.rollno,
-        "name": student.name,
-        "year": student.year,
-        "branch": student.branch,
-        "section": student.section,
-        "mobileno": student.mobileno,
-        "college": student.college
-    } for student in students])
+    return jsonify({"message": "Welcome to the Firestore-based Backend Server!"})
 
 @app.route('/students', methods=['GET'])
 def get_students():
-    """
-    Endpoint to get the list of all students.
-    Returns a JSON array of all students in the database.
-    """
-    students = Student.query.all()
-    return jsonify([{
-        "rollno": student.rollno,
-        "name": student.name,
-        "year": student.year,
-        "branch": student.branch,
-        "section": student.section,
-        "mobileno": student.mobileno,
-        "college": student.college,
-        "mailid": student.mailid
-    } for student in students]), 200
-
-@app.route('/profs', methods=['GET'])
-def get_professors():
-    """
-    Endpoint to get the list of all students.
-    Returns a JSON array of all students in the database.
-    """
-    profs = Professor.query.all()
-    return jsonify([{
-        "id": prof.id,
-        "name": prof.name,
-        "department": prof.department,
-        "mobileno": prof.phone,
-        "email": prof.email
-    } for prof in professor]), 200
-
+    students_ref = db.collection('students')
+    students = [doc.to_dict() for doc in students_ref.stream()]
+    return jsonify(students), 200
 
 @app.route('/add_student', methods=['POST'])
 def add_student():
     data = request.get_json()
+    student_ref = db.collection('students').document(data['rollno'])
+    if student_ref.get().exists:
+        return jsonify({"error": "Student already exists"}), 400
 
-    # Ensure OTP is verified
-    if data['mailid'] not in verified_emails:
-        return jsonify({"error": "OTP verification is required before adding a student"}), 403
-
-    # Check if student already exists
-    if Student.query.filter_by(rollno=data['rollno']).first():
-        return jsonify({'error': 'Student with this roll number already exists'}), 400
-
-    # Hash the password
     hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
-
-    # Add student to the database
-    new_student = Student(
-        rollno=data['rollno'],
-        name=data['name'],
-        year=data['year'],
-        branch=data['branch'],
-        section=data['section'],
-        mobileno=data['mobileno'],
-        college=data['college'],
-        mailid=data['mailid'],
-        password=hashed_password
-    )
-
-    db.session.add(new_student)
-    db.session.commit()
-
-    # Remove from verified list after successful registration
-    verified_emails.remove(data['mailid'])
-
+    student_data = {
+        'rollno': data['rollno'],
+        'name': data['name'],
+        'year': data['year'],
+        'branch': data['branch'],
+        'section': data['section'],
+        'mobileno': data['mobileno'],
+        'college': data['college'],
+        'mailid': data['mailid'],
+        'password': hashed_password
+    }
+    student_ref.set(student_data)
     return jsonify({"message": "Student added successfully!"}), 201
 
-@app.route('/profsignup', methods=['POST'])
-def prof_signup():
-    data = request.get_json()
-
-    # Ensure OTP is verified
-    if data['mailid'] not in verified_emails:
-        return jsonify({"error": "OTP verification is required before signing up"}), 403
-
-    # Check if professor already exists
-    if Professor.query.filter_by(email=data['email']).first():
-        return jsonify({'error': 'Professor with this email already exists'}), 400
-
-    # Hash the password
-    hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
-
-    # Add professor to the database
-    new_professor = Professor(
-        name=data['name'],
-        department=data['department'],
-        email=data['mailid'],
-        phone=data['phone'],
-        password=hashed_password
-    )
-
-    db.session.add(new_professor)
-    db.session.commit()
-
-    # Remove from verified list after successful registration
-    verified_emails.remove(data['email'])
-
-    return jsonify({"message": "Professor signed up successfully!"}), 201
-
-# Route to login (generates JWT token)
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    
-    if 'rollno' not in data or 'password' not in data:
-        return jsonify({"error": "Missing roll number or password"}), 400
+    rollno = data.get('rollno')
+    password = data.get('password')
 
-    rollno = data['rollno'].upper()
-    for i in range(len(rollno)):
-        if not rollno[i].isdecimal():
-            rollno = rollno[:i] + rollno[i].lower() + rollno[i+1:]
+    student_ref = db.collection('students').document(rollno)
+    student = student_ref.get()
+    if not student.exists or not check_password_hash(student.to_dict()['password'], password):
+        return jsonify({"error": "Invalid roll number or password"}), 401
 
-    print(f"Normalized Roll Number: {rollno}")
-
-    student = Student.query.filter_by(rollno=rollno).first()
-
-    if not student:
-        rollno_alternate = rollno.swapcase()  # Swap case for alternate query
-        student = Student.query.filter_by(rollno=rollno_alternate).first()
-
-    if student and check_password_hash(student.password, data['password']):
-        token = generate_token(student)
-        return jsonify({"message": "Login successful!", "token": token}), 200
-
-    return jsonify({"error": "Invalid roll number or password"}), 401
-
-# Protected route to test JWT authentication
-@app.route('/protected', methods=['GET'])
-@token_required
-def protected(user_id):
-    return jsonify({"message": f"Access granted for user {user_id}!"}), 200
-
-
-# Configure Flask-Mail
-
-app.config['MAIL_DEFAULT_SENDER'] = 'joelmarkjoseph2004@gmail.com'
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME') #production
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD') #production
-# app.config['MAIL_USERNAME'] = "joelmarkjoseph2004@gmail.com"
-# app.config['MAIL_PASSWORD'] = "jpph tnro vbzq wubz"
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-
-mail = Mail(app)
-
-# Store the OTP for each user (in a real application, use a more secure solution)
-otp_dict = {}
+    token = generate_token(rollno)
+    return jsonify({"message": "Login successful!", "token": token}), 200
 
 @app.route('/sendotp', methods=['POST'])
 def send_otp():
     data = request.get_json()
     email = data.get('mailid')
-
     if not email:
-        return jsonify({"error": "Email is required"}), 400 
+        return jsonify({"error": "Email is required"}), 400
 
-    otp = random.randint(100000, 999999)  # Generate a 6-digit OTP
-    otp_dict[email] = otp
-
-    # Send OTP via email
-    msg = Message("Your OTP for Signup", recipients=[email])
-    msg.body = f"Hello from COLLSPACE!! \nYour OTP for verifying your mail id is: {otp} \nThis Otp is valid for only 10 mins.\nPlease do not share this Otp with anyone."
-
+    otp = random.randint(100000, 999999)
+    db.collection('otps').document(email).set({'otp': otp, 'timestamp': datetime.datetime.utcnow()})
+    msg = Message("Your OTP", recipients=[email])
+    msg.body = f"Your OTP is: {otp}"
     try:
         mail.send(msg)
-        return jsonify({"message": "OTP sent successfully to your email!"}), 200
+        return jsonify({"message": "OTP sent successfully!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-verified_emails = set()
-
-@app.route('/verifyotp', methods=['POST'])
-def verify_otp():
-    data = request.get_json()
-    email = data.get('mailid')
-    otp = data.get('otp')
-
-    if not email or not otp:
-        return jsonify({"error": "Email and OTP are required"}), 400
-
-    # Check if the OTP is correct
-    if otp_dict.get(email) == int(otp):
-        del otp_dict[email]  # Remove the OTP after verification
-        verified_emails.add(email)  # Mark email as verified
-        return jsonify({"message": "OTP verified successfully!"}), 200
-    else:
-        return jsonify({"error": "Invalid OTP"}), 400
-
-
-# if __name__ == '__main__':
-#     with app.app_context():
-#         db.create_all()
-#     # app.run(debug=True) # deployment
-#     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000))) #production
+# Start the Flask server
 if __name__ == '__main__':
-    with app.app_context():
-        try:
-            upgrade()  # Run the Flask-Migrate upgrade
-            print("Migrations applied successfully!")
-        except Exception as e:
-            print(f"Migration failed: {str(e)}")
-
-        db.create_all()  # Optional: Ensures tables exist
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
+    port = int(os.environ.get("PORT", 5000))  # Use dynamic port for Render
+    app.run(host='0.0.0.0', port=port)
