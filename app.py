@@ -152,6 +152,46 @@ def send_otp():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/verifyotp', methods=['POST'])
+def verify_otp():
+    """
+    Verify the OTP provided by the user.
+    """
+    data = request.get_json()
+    email = data.get('mailid')
+    otp = data.get('otp')
+
+    if not email or not otp:
+        return jsonify({"error": "Email and OTP are required"}), 400
+
+    try:
+        # Retrieve OTP details from Firestore
+        otp_ref = db.collection('otps').document(email)
+        otp_doc = otp_ref.get()
+
+        if not otp_doc.exists:
+            return jsonify({"error": "OTP not found. Please request a new OTP."}), 404
+
+        otp_data = otp_doc.to_dict()
+        stored_otp = otp_data.get('otp')
+        timestamp = otp_data.get('timestamp')
+
+        # Check if the OTP is valid
+        if str(otp) != str(stored_otp):
+            return jsonify({"error": "Invalid OTP. Please try again."}), 401
+
+        # Check if the OTP has expired (5 minutes validity)
+        if (datetime.datetime.utcnow() - timestamp).total_seconds() > 300:
+            return jsonify({"error": "OTP has expired. Please request a new OTP."}), 401
+
+        # OTP verified successfully; remove it from Firestore
+        otp_ref.delete()
+        return jsonify({"message": "OTP verified successfully!"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # Start the Flask server
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Use dynamic port for Render
