@@ -154,9 +154,7 @@ def send_otp():
 
 @app.route('/verifyotp', methods=['POST'])
 def verify_otp():
-    """
-    Verify the OTP provided by the user.
-    """
+   
     data = request.get_json()
     email = data.get('mailid')
     otp = data.get('otp')
@@ -179,10 +177,6 @@ def verify_otp():
         # Check if the OTP is valid
         if str(otp) != str(stored_otp):
             return jsonify({"error": "Invalid OTP. Please try again."}), 401
-
-        # Check if the OTP has expired (5 minutes validity)
-        if (datetime.datetime.utcnow() - timestamp).total_seconds() > 300:
-            return jsonify({"error": "OTP has expired. Please request a new OTP."}), 401
 
         # OTP verified successfully; remove it from Firestore
         otp_ref.delete()
