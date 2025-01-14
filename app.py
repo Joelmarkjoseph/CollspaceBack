@@ -42,6 +42,39 @@ def generate_token(user_id):
     token = jwt.encode(header, payload, secret_key)
     return token.decode("utf-8")
 
+# JWT token verification decorator
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization', '').split("Bearer ")[-1]
+        if not token:
+            return jsonify({"error": "Token is missing"}), 401
+        try:
+            decoded = jwt.decode(token, app.config['SECRET_KEY'])
+            kwargs['user_id'] = decoded['sub']
+        except Exception as e:
+            return jsonify({"error": "Invalid or expired token"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route('/dashboard', methods=['GET'])
+@token_required
+def get_dashboard(user_id):
+    
+    try:
+        # Fetch students' data from Firestore
+        students_ref = db.collection('students')
+        students = [doc.to_dict() for doc in students_ref.stream()]
+        
+        # Check if students exist
+        if not students:
+            return jsonify({"message": "No student data found."}), 404
+
+        return jsonify(students), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # JWT token verification
 def token_required(f):
     @wraps(f)
