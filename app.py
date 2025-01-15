@@ -62,7 +62,7 @@ def token_required(f):
 def get_dashboard(user_id):
     try:
         # Query the Firestore collection for the user_id
-        query = db.collection('students').where('rollno', '==', user_id)
+        query = db.collection('students').filter('rollno', '==', user_id)
         student_docs = query.stream()
 
         # Convert the results to a list
