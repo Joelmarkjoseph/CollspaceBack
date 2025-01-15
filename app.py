@@ -60,23 +60,24 @@ def token_required(f):
 @app.route('/dashboard', methods=['GET'])
 @token_required
 def get_dashboard(user_id):
-    """
-    Fetch dashboard data for the specific user identified by user_id.
-    """
     try:
-        # Fetch the specific student's data from Firestore
-        student_ref = db.collection('students').document(user_id)
-        student_doc = student_ref.get()
+        # Query the Firestore collection for the user_id
+        query = db.collection('students').where('rollno', '==', user_id)
+        student_docs = query.stream()
 
-        # Check if the student exists
-        if not student_doc.exists:
+        # Convert the results to a list
+        student_data = [doc.to_dict() for doc in student_docs]
+
+        # Check if the user exists
+        if not student_data:
             return jsonify({"message": f"No data found for user_id: {user_id}."}), 404
 
-        # Return the student's data
-        return jsonify(student_doc.to_dict()), 200
+        # Return the user's data (assume only one record matches the query)
+        return jsonify(student_data[0]), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 # JWT token verification
 def token_required(f):
